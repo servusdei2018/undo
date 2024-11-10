@@ -1,7 +1,7 @@
-use clap::{Command};
+use clap;
 
 pub fn get_subcommand() -> clap::Command {
-    Command::new("revert")
+    clap::Command::new("revert")
         .about("Revert the changes made to a file (or all files)")
         .long_about(
             "The `revert` subcommand allows you to undo the changes made to a file by the `run` subcommand.\n\
@@ -21,6 +21,4 @@ pub fn get_subcommand() -> clap::Command {
         )
 }
 
-
-pub fn handle(_matches: &clap::ArgMatches) {
-}
+pub fn handle(_matches: &clap::ArgMatches) {}

@@ -1,7 +1,7 @@
-use clap::{Command};
+use clap;
 
 pub fn get_subcommand() -> clap::Command {
-    Command::new("list")
+    clap::Command::new("list")
         .about("List all modified files that can be reverted")
         .long_about(
             "The `list` subcommand displays a list of files that have been modified and are currently tracked for undo.\n\
@@ -16,5 +16,4 @@ pub fn get_subcommand() -> clap::Command {
         )
 }
 
-pub fn handle() {
-}
+pub fn handle() {}

@@ -1,7 +1,7 @@
 mod commands;
 
-use clap::{Command};
-use commands::{clear, revert, run, list};
+use clap::Command;
+use commands::{clear, list, revert, run};
 
 fn main() {
     let matches = Command::new("undo")
