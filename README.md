@@ -4,6 +4,26 @@
 
 This allows you to safely edit files or run commands, with the ability to roll back changes if needed.
 
+## Usage
+
+```bash
+Usage: undo [COMMAND]
+
+Commands:
+  clear   Clear the history of tracked file modifications
+  list    List all modified files that can be reverted
+  revert  Revert the changes made to a file (or all files)
+  run     Run a command while tracking file modifications
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
+```
+
 ## Installation
 
 You can build `undo` from source using Cargo, the Rust package manager. Ensure you have [Rust](https://www.rust-lang.org/tools/install) installed.
@@ -27,29 +47,6 @@ You can build `undo` from source using Cargo, the Rust package manager. Ensure y
     ```bash
     $ sudo mv target/release/undo /usr/local/bin/undo
     ```
-
-## Usage
-
-Once installed, you can use `undo` to track modifications, revert changes, and manage the history of modified files.
-
-
-```bash
-Usage: undo [COMMAND]
-
-Commands:
-  clear   Clear the history of tracked file modifications
-  list    List all modified files that can be reverted
-  revert  Revert the changes made to a file (or all files)
-  run     Run a command while tracking file modifications
-  help    Print this message or the help of the given subcommand(s)
-
-Options:
-  -h, --help
-          Print help (see a summary with '-h')
-
-  -V, --version
-          Print version
-```
 
 ## License
 
