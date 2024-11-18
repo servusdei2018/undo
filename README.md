@@ -1,4 +1,4 @@
-# undo
+# undo [![CircleCI](https://dl.circleci.com/status-badge/img/gh/servusdei2018/undo/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/servusdei2018/undo/tree/main)
 
 `undo` is a simple tool to track file modifications made by external programs and allows you to undo those changes later.
 
