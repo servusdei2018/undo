@@ -1,9 +1,7 @@
 use clap;
 use nix::sys::ptrace;
-use nix::sys::signal::{raise, Signal};
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::fork;
-use nix::unistd::ForkResult::*;
+use nix::unistd::Pid;
 use std::process;
 
 pub fn get_subcommand() -> clap::Command {
@@ -25,65 +23,37 @@ pub fn get_subcommand() -> clap::Command {
 }
 
 pub fn handle(matches: &clap::ArgMatches) {
-    match unsafe { fork() }.expect("Error: Fork Failed") {
-        Child => {
-            ptrace::traceme().unwrap();
-            // As recommended by ptrace(2), raise SIGTRAP to pause the child until the parent is ready to continue
-            raise(Signal::SIGTRAP).unwrap();
-
-            let program = matches
-                .get_one::<String>("program")
-                .expect("Program is required");
-            let args = matches
-                .get_many::<String>("args")
-                .map(|s| s.collect::<Vec<_>>())
-                .unwrap_or_default();
-
-            let mut cmd = process::Command::new(program);
-            cmd.args(args);
-            cmd.stdin(std::process::Stdio::inherit())
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit());
-
-            match cmd.spawn() {
-                Ok(mut child) => {
-                    let exit_status = child.wait().unwrap();
-                    process::exit(exit_status.code().unwrap_or(1));
+    let program = matches
+        .get_one::<String>("program")
+        .unwrap();
+    let args = matches
+        .get_many::<String>("args")
+        .map(|s| s.collect::<Vec<_>>())
+        .unwrap_or_default();
+    let mut cmd = process::Command::new(program);
+    cmd.args(args);
+    cmd.stdin(std::process::Stdio::inherit())
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit());
+    match cmd.spawn() {
+        Ok(child_process) => {
+            let child_pid = Pid::from_raw(child_process.id() as i32);
+            ptrace::attach(child_pid).unwrap();
+            loop {
+                let status = waitpid(child_pid, None).unwrap();
+                if let WaitStatus::Stopped(pid, _) = status {
+                        let regs = ptrace::getregs(pid).unwrap();
+                        let _syscall_number = regs.orig_rax;
+                        ptrace::syscall(child_pid, None).unwrap();
                 }
-                Err(e) => {
-                    eprintln!("Failed to run command: {}", e);
-                    process::exit(1);
+                if let WaitStatus::Exited(_, _) = status {
+                    break;
                 }
             }
         }
-        Parent { child } => {
-            assert_eq!(
-                waitpid(child, None),
-                Ok(WaitStatus::Stopped(child, Signal::SIGTRAP))
-            );
-            ptrace::cont(child, None).unwrap();
-            assert_eq!(
-                waitpid(child, None),
-                Ok(WaitStatus::Stopped(child, Signal::SIGTRAP))
-            );
-            ptrace::cont(child, Some(Signal::SIGKILL)).unwrap();
-            match waitpid(child, None) {
-                Ok(WaitStatus::Exited(pid, exit_code)) if pid == child => {
-                    process::exit(exit_code);
-                }
-                Ok(WaitStatus::Signaled(pid, signal, _)) if pid == child => {
-                    eprintln!("Child process {} was killed by signal: {:?}", child, signal);
-                    process::exit(1);
-                }
-                Ok(status) => {
-                    eprintln!("Unexpected wait status: {:?}", status);
-                    process::exit(1);
-                }
-                Err(e) => {
-                    eprintln!("Error waiting for child process: {}", e);
-                    process::exit(1);
-                }
-            }
+        Err(e) => {
+            eprintln!("Failed to spawn command: {}", e);
+            process::exit(1);
         }
     }
 }
