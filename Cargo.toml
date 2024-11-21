@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 clap = "4.5"
 nix = { version = "0.29", features = ["ptrace", "signal"] }
+rusqlite = { version = "0.32", features = ["bundled"] }

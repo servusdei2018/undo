@@ -1,5 +1,8 @@
+use crate::cache::Cache;
+
 use clap;
 
+/// Creates the `clear` subcommand.
 pub fn get_subcommand() -> clap::Command {
     clap::Command::new("clear")
         .about("Clear the history of tracked file modifications")
@@ -9,6 +12,14 @@ pub fn get_subcommand() -> clap::Command {
         )
 }
 
-pub fn handle() {
-    println!("History cleared.");
+/// Handles the `clear` subcommand.
+pub fn handle(c: &mut Cache) {
+    match c.clear() {
+        Ok(_) => {
+            println!("History cleared.");
+        }
+        Err(e) => {
+            eprintln!("Error clearing history: {}", e);
+        }
+    }
 }

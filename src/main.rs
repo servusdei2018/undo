@@ -1,9 +1,21 @@
+mod cache;
 mod commands;
+mod tracer;
 
-use clap::Command;
+use cache::Cache;
 use commands::{clear, list, revert, run};
 
+use clap::Command;
+
 fn main() {
+    let mut cache = match Cache::new() {
+        Ok(cache) => cache,
+        Err(e) => {
+            eprintln!("Failed to initialize cache: {}", e);
+            std::process::exit(1);
+        }
+    };
+
     let matches = Command::new("undo")
         .version(env!("CARGO_PKG_VERSION"))
         .author("Nathanael Bracy <https://bracy.dev>")
@@ -22,10 +34,10 @@ fn main() {
         .get_matches();
 
     match matches.subcommand() {
-        Some(("clear", _)) => clear::handle(),
-        Some(("list", _)) => list::handle(),
-        Some(("revert", sub_m)) => revert::handle(sub_m),
-        Some(("run", sub_m)) => run::handle(sub_m),
+        Some(("clear", _)) => clear::handle(&mut cache),
+        Some(("list", _)) => list::handle(&cache),
+        Some(("revert", sub_m)) => revert::handle(&mut cache, sub_m),
+        Some(("run", sub_m)) => run::handle(&cache, sub_m),
         _ => {
             eprintln!("Invalid command.");
             std::process::exit(1);

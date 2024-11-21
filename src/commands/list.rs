@@ -1,5 +1,8 @@
+use crate::cache::Cache;
+
 use clap;
 
+/// Creates the `list` subcommand.
 pub fn get_subcommand() -> clap::Command {
     clap::Command::new("list")
         .about("List all modified files that can be reverted")
@@ -16,4 +19,21 @@ pub fn get_subcommand() -> clap::Command {
         )
 }
 
-pub fn handle() {}
+/// Handles the `list` subcommand.
+pub fn handle(c: &Cache) {
+    match c.list() {
+        Ok(files) => {
+            if files.is_empty() {
+                println!("No files are currently tracked for undo.");
+            } else {
+                println!("Modified files:");
+                for file in files {
+                    println!("{}", file.display());
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error retrieving tracked files: {}", e);
+        }
+    }
+}

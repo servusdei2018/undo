@@ -1,9 +1,13 @@
+use crate::cache::Cache;
+use crate::tracer;
+
 use clap;
 use nix::sys::ptrace;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::Pid;
 use std::process;
 
+/// Creates the `run` subcommand.
 pub fn get_subcommand() -> clap::Command {
     clap::Command::new("run")
         .about("Run a command while tracking file modifications")
@@ -22,32 +26,35 @@ pub fn get_subcommand() -> clap::Command {
         )
 }
 
-pub fn handle(matches: &clap::ArgMatches) {
-    let program = matches
-        .get_one::<String>("program")
-        .unwrap();
-    let args = matches
-        .get_many::<String>("args")
-        .map(|s| s.collect::<Vec<_>>())
-        .unwrap_or_default();
-    let mut cmd = process::Command::new(program);
-    cmd.args(args);
-    cmd.stdin(std::process::Stdio::inherit())
+/// Handles the `run` subcommand.
+pub fn handle(_c: &Cache, matches: &clap::ArgMatches) {
+    match process::Command::new(matches.get_one::<String>("program").unwrap())
+        .args(
+            matches
+                .get_many::<String>("args")
+                .map(|s| s.collect::<Vec<_>>())
+                .unwrap_or_default(),
+        )
+        .stdin(std::process::Stdio::inherit())
         .stdout(std::process::Stdio::inherit())
-        .stderr(std::process::Stdio::inherit());
-    match cmd.spawn() {
+        .stderr(std::process::Stdio::inherit())
+        .spawn()
+    {
         Ok(child_process) => {
             let child_pid = Pid::from_raw(child_process.id() as i32);
             ptrace::attach(child_pid).unwrap();
             loop {
-                let status = waitpid(child_pid, None).unwrap();
-                if let WaitStatus::Stopped(pid, _) = status {
-                        let regs = ptrace::getregs(pid).unwrap();
-                        let _syscall_number = regs.orig_rax;
-                        ptrace::syscall(child_pid, None).unwrap();
-                }
-                if let WaitStatus::Exited(_, _) = status {
-                    break;
+                match waitpid(child_pid, None).unwrap() {
+                    WaitStatus::Stopped(pid, _) => {
+                        let regs = tracer::peek(pid).unwrap();
+                        let syscall_number = regs.orig_rax;
+                        println!("Syscall: {}", syscall_number);
+                        ptrace::syscall(pid, None).unwrap();
+                    },
+                    WaitStatus::Exited(_, _) => {
+                        break;
+                    },
+                    _ => {}
                 }
             }
         }
