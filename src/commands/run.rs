@@ -46,14 +46,14 @@ pub fn handle(_c: &Cache, matches: &clap::ArgMatches) {
             loop {
                 match waitpid(child_pid, None).unwrap() {
                     WaitStatus::Stopped(pid, _) => {
-                        let regs = tracer::peek(pid).unwrap();
-                        let syscall_number = regs.orig_rax;
-                        println!("Syscall: {}", syscall_number);
+                        if let Ok(path) = tracer::sniff(pid) {
+                            println!("Path: {}", path);
+                        }
                         ptrace::syscall(pid, None).unwrap();
-                    },
+                    }
                     WaitStatus::Exited(_, _) => {
                         break;
-                    },
+                    }
                     _ => {}
                 }
             }
